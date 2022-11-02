@@ -216,6 +216,64 @@ class MysqlDB extends DB {
 	   return $this->db->query("UPDATE levelsystem_user SET nextlevelxp= $amount WHERE xuid='".$this->db->real_escape_string($player)."'");
        }
 	
+	public function prepareNewLevel(Player $player, float $newLevel): bool{	
+			$cfg = new Config($this->getPlugin()->getDataFolder() . "settings.yml", Config::YAML);
+			if($newLevel > intval($cfg->get("MaxLevel")))
+				return false;
+			
+			//$add = (100 * $newLevel * 5) / 2;
+			//$add = (100 * $newLevel * 4) / 2;
+			//$newNextLevel = ($add * $newLevel * 100) / ($newLevel * 5);
+			//$newNextLevel = ($add * $newLevel * 100) / ($newLevel * 4);
+			
+			$add = (50 * $newLevel / 2);
+			$newNextLevel = ($add * $newLevel * 100) / ($newLevel * 4);
+			
+			if($player instanceof Player){
+				if(($msg = $cfg->get("level." . $newLevel . ".message"))){
+					$player->sendMessage(str_replace(["{newLvl}", "{oldLvl}", "{player}", "&"], [$newLevel, $this->getLevel($player), $player->getName(), TF::ESCAPE], $msg));
+				} else {
+					$player->sendMessage(str_replace(["{newLvl}", "{oldLvl}", "{player}", "&"], [$newLevel, $this->getLevel($player), $player->getName(), TF::ESCAPE], $cfg->get("default-level-message")));
+				}
+
+				if($cfg->get("new.level.reward") === true){
+					if(($cmds = $cfg->get("new.level.reward.commands")) && is_array($cmds)){
+						foreach ($cmds as $cmd){
+							Main::getInstance()->getServer()->dispatchCommand(new ConsoleCommandSender(Main::getInstance()->getServer(), Main::getInstance()->getServer()->getLanguage()), str_replace(["&", "{player}"], [TF::ESCAPE, '"' . $player->getName() . '"'], $cmd));
+						}
+					}
+				}
+
+				// later...
+				// $lvl = $this->getLevel($player);
+				// $player->setNameTag(str_replace(["{lvl}", ($newLevel - 1)], [$lvl, $lvl], $player->getNameTag()));
+			} else {
+				$p = Main::getInstance()->getServer()->getPlayerByPrefix($player);
+				if($p !== null){
+					if(($msg = $cfg->get("level." . $newLevel . ".message"))){
+						$p->sendMessage(str_replace(["{newLvl}", "{oldLvl}", "{player}", "&"], [$newLevel, $this->getLevel($player), $p, TF::ESCAPE], $msg));
+					} else {
+						$p->sendMessage(str_replace(["{newLvl}", "{oldLvl}", "{player}", "&"], [$newLevel, $this->getLevel($p), $p, TF::ESCAPE], $cfg->get("default-level-message")));
+					}
+
+					if($cfg->get("new.level.reward") === true){
+						if(($cmds = $cfg->get("new.level.reward.commands")) && is_array($cmds)){
+							foreach ($cmds as $cmd){
+								Main::getInstance()->getServer()->dispatchCommand(new ConsoleCommandSender(Main::getInstance()->getServer(), Main::getInstance()->getServer()->getLanguage()), str_replace(["&", "{player}"], [TF::ESCAPE, '"' . $p . '"'], $cmd));
+							}
+						}
+					}
+
+					// $lvl = $this->getLevel($player);
+					// $player->setNameTag(str_replace(["{lvl}", ($newLevel - 1)], [$lvl, $lvl], $player->getNameTag()));
+					// $p->sendMessage(TF::YELLOW . "Congratulations, you have reached level " . $newLevel
+				}
+			}
+		}
+		
+		return false;
+	}
+	
 	/**
 	 * @return array
 	 */
