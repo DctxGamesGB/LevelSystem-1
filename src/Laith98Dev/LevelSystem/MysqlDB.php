@@ -139,9 +139,12 @@ class MysqlDB extends DB {
 		return $this->db->query("UPDATE levelsystem_user SET xp= $calculate WHERE xuid='".$this->db->real_escape_string($player)."'");
 	}
   
-  public function setXp(){
-
-  }
+       public function setXp(Player $player, float $amount) : float{
+           if($player instanceof Player){
+		$player = strtolower($player->getXuid());
+	   }
+	   return $this->db->query("UPDATE levelsystem_user SET xp= $amount WHERE xuid='".$this->db->real_escape_string($player)."'");
+       }
 
     /**
      * @param Player $player
@@ -152,7 +155,7 @@ class MysqlDB extends DB {
 			$player = $player->getXuid();
 		}
 		$player = strtolower($player);
-		$res = $this->db->query("SELECT FROM levelsystem_user WHERE xuid='".$this->db->real_escape_string($player)."'");
+		$res = $this->db->query("SELECT level FROM levelsystem_user WHERE xuid='".$this->db->real_escape_string($player)."'");
 		$ret = $res->fetch_array()[0] ?? false;
 		$res->free();
 		return $ret;
@@ -168,12 +171,15 @@ class MysqlDB extends DB {
 		if($player instanceof Player){
 			$player = strtolower($player->getXuid());
 		}
-		return $this->db->query("UPDATE levelsystem_user SET kills = $calculate WHERE xuid='".$this->db->real_escape_string($player)."'");
+		return $this->db->query("UPDATE levelsystem_user SET level= $calculate WHERE xuid='".$this->db->real_escape_string($player)."'");
 	}
   
-  public function setLevel(){
-
-  }
+       public function setLevel(Player $player, float $amount) : float{
+           if($player instanceof Player){
+		$player = strtolower($player->getXuid());
+	   }
+	   return $this->db->query("UPDATE levelsystem_user SET level= $amount WHERE xuid='".$this->db->real_escape_string($player)."'");
+       }
 	
 	/**
 	 * @return array
