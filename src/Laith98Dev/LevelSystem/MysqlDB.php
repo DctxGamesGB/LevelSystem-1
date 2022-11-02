@@ -36,8 +36,10 @@ class MysqlDB extends DB {
 		if(!$this->db->query("CREATE TABLE if NOT EXISTS levelsystem_user(
 			    xuid VARCHAR(50) PRIMARY KEY,
 				  username VARCHAR(50),
-          xp FLOAT,
-          level FLOAT
+                                  xp FLOAT,
+                                  level FLOAT,
+				  addxp FLOAT,
+				  nextlevelxp FLOAT
 		    );"
 		)){
 		    $this->plugin->getLogger()->critical("Error creating table: " . $this->db->error);
@@ -84,7 +86,9 @@ class MysqlDB extends DB {
 			    xuid,
 				username,
 				xp,
-				level
+				level,
+				addxp,
+			        nextlevelxp
 			)
 			VALUES ('".$this->db->real_escape_string($xuid)."', 
 			    '$namePlayer',
@@ -110,6 +114,11 @@ class MysqlDB extends DB {
 		if($this->db->query("DELETE FROM levelsystem_user WHERE xuid='".$this->db->real_escape_string($player)."'") === true) return true;
 		return false;
 	}
+	
+    public function LevelInfo(Player $player){ // transfered function of CheckAccount in DataMGR.php
+        		$add = (50 * $this->getLevel($player) / 2);
+			$nextLevelXP = ($add * $this->getLevel($player) * 100) / ($this->getLevel($player) * 4);
+    }
 
     /**
      * @param Player $player
@@ -143,6 +152,10 @@ class MysqlDB extends DB {
            if($player instanceof Player){
 		$player = strtolower($player->getXuid());
 	   }
+	   $cfg = new Config(Main::getInstance()->getDataFolder . "settings.yml", Config::YAML);
+	   if($this->getLevel($player) >= intval($cfg->get("MaxLevel")))
+	       return false;
+	       
 	   return $this->db->query("UPDATE levelsystem_user SET xp= $amount WHERE xuid='".$this->db->real_escape_string($player)."'");
        }
 
@@ -159,7 +172,7 @@ class MysqlDB extends DB {
 		$ret = $res->fetch_array()[0] ?? false;
 		$res->free();
 		return $ret;
-	}
+    }
 	
 	/**
      * @param Player $player
@@ -178,7 +191,29 @@ class MysqlDB extends DB {
            if($player instanceof Player){
 		$player = strtolower($player->getXuid());
 	   }
+	   $cfg = new Config(Main::getInstance()->getDataFolder() . "settings.yml", Config::YAML);    
+	   if($this->getLevel($player) >= intval($cfg->get("MaxLevel")))
+	       return false;
+	       
 	   return $this->db->query("UPDATE levelsystem_user SET level= $amount WHERE xuid='".$this->db->real_escape_string($player)."'");
+       }
+	
+       public function getNextLevelXp(Player $player) :float{
+	   if($player instanceof Player){
+		$player = $player->getXuid();
+	   }
+	   $player = strtolower($player);
+	   $res = $this->db->query("SELECT nextlevelxp FROM levelsystem_user WHERE xuid='".$this->db->real_escape_string($player)."'");
+	   $ret = $res->fetch_array()[0] ?? false;
+	   $res->free();
+	   return $ret;
+       }
+	
+       public function setNextLevelXp(Player $player, float $amount) : float{
+           if($player instanceof Player){
+		$player = strtolower($player->getXuid());
+	   }   
+	   return $this->db->query("UPDATE levelsystem_user SET nextlevelxp= $amount WHERE xuid='".$this->db->real_escape_string($player)."'");
        }
 	
 	/**
@@ -193,6 +228,8 @@ class MysqlDB extends DB {
 				"name" => $val[1],
 				"xp" => $val[2],
 				"level" => $val[3],
+				"addxp" => $val[4],
+				"nextlevelxp" => $val[5]
 			];
 		}
 		$res->free();
